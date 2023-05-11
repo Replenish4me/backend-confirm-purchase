@@ -1,0 +1,51 @@
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Configure Terraform
+      uses: hashicorp/setup-terraform@v1
+      with:
+        terraform_version: 0.14.11
+
+    - name: Authenticate do AWS CLI
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_KEY }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+        aws-region: us-east-1
+
+    - name: Zipping function
+      run: pip install -r requirements.txt -t lib && zip -r app.zip app/ && cd lib && zip -r ../app.zip ./*
+
+
+    - name: Terraform Init
+      run: cd infra && terraform init
+
+    - name: Terraform select Workspace
+      run: cd infra && terraform workspace new ${{ env.ENVIRONMENT }} || terraform workspace select ${{ env.ENVIRONMENT }}
+      continue-on-error: true
+      env:
+        ENVIRONMENT: stage
+
+    - name: Terraform Validate
+      run: cd infra && terraform validate
+      env:
+        ENVIRONMENT: stage
+
+    - name: Terraform Plan
+      run: cd infra && terraform plan -var-file="./${{ env.ENVIRONMENT }}/env.tfvars"
+      env:
+        ENVIRONMENT: stage
+
+    - name: Terraform Apply
+      run: cd infra && terraform apply -var-file="./${{ env.ENVIRONMENT }}/env.tfvars" -auto-approve
+      env:
+        ENVIRONMENT: stage
