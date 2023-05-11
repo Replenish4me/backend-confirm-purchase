@@ -39,18 +39,6 @@ def lambda_handler(event, context):
             
             usuario_id = result[0]
             
-            # Verificação do carrinho
-            sql = "SELECT produto_id, quantidade FROM CarrinhoCompras WHERE usuario_id = %s"
-            cursor.execute(sql, (usuario_id,))
-            result = cursor.fetchall()
-            
-            if not result:
-                response = {
-                    "statusCode": 400,
-                    "body": json.dumps({"message": "Carrinho vazio"})
-                }
-                return response
-            
             # Buscando endereço do usuário
             sql = "SELECT endereco FROM Usuarios WHERE id = %s"
             cursor.execute(sql, (usuario_id,))
@@ -69,6 +57,18 @@ def lambda_handler(event, context):
                 response = {
                     "statusCode": 400,
                     "body": json.dumps({"message": "Endereço não cadastrado"})
+                }
+                return response
+            
+            # Verificação do carrinho
+            sql = "SELECT produto_id, quantidade FROM CarrinhoCompras WHERE usuario_id = %s"
+            cursor.execute(sql, (usuario_id,))
+            result = cursor.fetchall()
+            
+            if not result:
+                response = {
+                    "statusCode": 400,
+                    "body": json.dumps({"message": "Carrinho vazio"})
                 }
                 return response
             
